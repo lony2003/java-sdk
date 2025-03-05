@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Validate jdk:${{ matrix.java }} sb:${{ matrix.spring-boot-display-version }} exp:${{ matrix.experimental }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ 17 ]
+        spring-boot-version: [  3.4.3 ]
+        spring-boot-display-version: [ 3.4.x ]
+        experimental: [ false ]
+        include:
+          - java: 17
+            spring-boot-version: 3.3.9
+            spring-boot-display-version: 3.3.x
+            experimental: false
+    env:
+      GOVER: "1.20"
+      GOOS: linux
+      GOARCH: amd64
+      GOPROXY: https://proxy.golang.org
+      JDK_VER: ${{ matrix.java }}
+      DAPR_CLI_VER: 1.14.0
+      DAPR_RUNTIME_VER: 1.14.4
+      DAPR_INSTALL_URL: https://raw.githubusercontent.com/dapr/cli/v1.14.0/install/install.sh
+      DAPR_CLI_REF:
+      DAPR_REF:
+      TOXIPROXY_URL: https://github.com/Shopify/toxiproxy/releases/download/v2.5.0/toxiproxy-server-linux-amd64
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up OpenJDK ${{ env.JDK_VER }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: ${{ env.JDK_VER }}
+    - name: Clean up files
+      run: ./mvnw clean -B
+    - name: Validate sdk
+      run: ./mvnw validate -B -q
+    - name: Build sdk
+      run: ./mvnw compile -B -q
+    - name: Unit tests
+      run: ./mvnw test # making it temporarily verbose.
