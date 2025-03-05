@@ -12,8 +12,6 @@
 name: dapr-java-sdk-automerge-bot
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 jobs:
   automerge:

@@ -48,9 +48,9 @@ jobs:
         dapr init --runtime-version ${{ env.DAPR_RUNTIME_VER }}
     - name: Clean up files
       run: ./mvnw clean -B
-    - name: Validate sdk
-      run: ./mvnw validate -B -q
     - name: Build sdk
       run: ./mvnw compile -B -q
+    - name: Validate sdk
+      run: ./mvnw validate -B -q
     - name: Unit tests
       run: ./mvnw test # making it temporarily verbose.
