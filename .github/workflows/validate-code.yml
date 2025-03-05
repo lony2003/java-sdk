@@ -16,11 +16,6 @@ jobs:
         spring-boot-version: [  3.4.3 ]
         spring-boot-display-version: [ 3.4.x ]
         experimental: [ false ]
-        include:
-          - java: 17
-            spring-boot-version: 3.3.9
-            spring-boot-display-version: 3.3.x
-            experimental: false
     env:
       GOVER: "1.20"
       GOOS: linux
@@ -49,8 +44,8 @@ jobs:
       - name: Clean up files
         run: ./mvnw clean -B
       - name: Build sdk
-        run: ./mvnw compile -B -q
+        run: ./mvnw compile -B
       - name: Validate sdk
-        run: ./mvnw validate -B -q
+        run: ./mvnw validate -B
       - name: Unit tests
         run: ./mvnw test # making it temporarily verbose.
