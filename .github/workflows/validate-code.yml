@@ -1,4 +1,4 @@
-name: Build
+name: Validate code
 
 on:
   workflow_dispatch:
