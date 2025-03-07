@@ -96,7 +96,7 @@ jobs:
         - name: Build sdk
           run: ./mvnw compile -B -q
         - name: Unit tests
-          run: ./mvnw test # making it temporarily verbose.
+          run: ./mvnw test -pl :dapr-spring-cloudconfig # making it temporarily verbose.
         - name: Codecov
           uses: codecov/codecov-action@v4.1.0
         - name: Install jars
