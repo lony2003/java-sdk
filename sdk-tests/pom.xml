@@ -53,6 +53,7 @@
       <groupId>redis.clients</groupId>
       <artifactId>jedis</artifactId>
       <version>5.2.0</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.grpc</groupId>
