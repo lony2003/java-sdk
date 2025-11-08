@@ -7,13 +7,12 @@
   <parent>
     <groupId>io.dapr</groupId>
     <artifactId>dapr-sdk-parent</artifactId>
-    <version>1.14.0-SNAPSHOT</version>
+    <version>1.17.0-SNAPSHOT</version>
   </parent>
 
   <groupId>io.dapr.spring</groupId>
   <artifactId>dapr-spring-parent</artifactId>
   <packaging>pom</packaging>
-  <version>0.14.0-SNAPSHOT</version>
   <name>dapr-spring-parent</name>
   <description>SDK extension for Spring and Spring Boot</description>
 
@@ -29,70 +28,49 @@
   </modules>
 
   <properties>
-    <springboot.version>3.2.6</springboot.version>
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
     <maven.compiler.release>11</maven.compiler.release>
+    <!-- WARNING: don't change this property unless you also update .github/scripts/update_sdk_version.sh -->
+    <dapr.spring.version>1.17.0-SNAPSHOT</dapr.spring.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${springboot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
+        <groupId>io.dapr.spring</groupId>
+        <artifactId>dapr-spring-data</artifactId>
+        <version>${dapr.spring.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dapr.spring</groupId>
+        <artifactId>dapr-spring-messaging</artifactId>
+        <version>${dapr.spring.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dapr.spring</groupId>
+        <artifactId>dapr-spring-workflows</artifactId>
+        <version>${dapr.spring.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dapr.spring</groupId>
+        <artifactId>dapr-spring-boot-autoconfigure</artifactId>
+        <version>${dapr.spring.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.dapr.spring</groupId>
+        <artifactId>dapr-spring-boot-tests</artifactId>
+        <version>${dapr.spring.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
 
-  <dependencies>
-    <!-- Dapr dependencies -->
-    <dependency>
-      <groupId>io.dapr</groupId>
-      <artifactId>dapr-sdk</artifactId>
-      <version>${dapr.sdk.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.dapr</groupId>
-      <artifactId>dapr-sdk-actors</artifactId>
-      <version>${dapr.sdk.version}</version>
-    </dependency>
-
-    <!-- Spring dependencies -->
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-context</artifactId>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-configuration-processor</artifactId>
-      <optional>true</optional>
-    </dependency>
-
-    <!-- Test dependencies -->
-    <dependency>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-test</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.github.gmazzo.okhttp.mock</groupId>
-      <artifactId>mock-client</artifactId>
-      <version>2.0.0</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
   <build>
     <plugins>
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
@@ -111,6 +89,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
         <version>3.2.0</version>
+        <configuration>
+          <notimestamp>true</notimestamp>
+        </configuration>
         <executions>
           <execution>
             <id>attach-javadocs</id>

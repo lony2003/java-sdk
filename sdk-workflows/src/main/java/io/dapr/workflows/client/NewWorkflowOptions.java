@@ -13,15 +13,17 @@ limitations under the License.
 
 package io.dapr.workflows.client;
 
-import com.microsoft.durabletask.NewOrchestrationInstanceOptions;
-
 import java.time.Instant;
 
 /**
  * Options for starting a new instance of a workflow.
  */
 public class NewWorkflowOptions {
-  private final NewOrchestrationInstanceOptions newOrchestrationInstanceOptions = new NewOrchestrationInstanceOptions();
+
+  private String version;
+  private String instanceId;
+  private Object input;
+  private Instant startTime;
 
   /**
    * Sets the version of the workflow to start.
@@ -30,7 +32,7 @@ public class NewWorkflowOptions {
    * @return this {@link NewWorkflowOptions} object
    */
   public NewWorkflowOptions setVersion(String version) {
-    this.newOrchestrationInstanceOptions.setVersion(version);
+    this.version = version;
     return this;
   }
 
@@ -43,7 +45,7 @@ public class NewWorkflowOptions {
    * @return this {@link NewWorkflowOptions} object
    */
   public NewWorkflowOptions setInstanceId(String instanceId) {
-    this.newOrchestrationInstanceOptions.setInstanceId(instanceId);
+    this.instanceId = instanceId;
     return this;
   }
 
@@ -54,21 +56,23 @@ public class NewWorkflowOptions {
    * @return this {@link NewWorkflowOptions} object
    */
   public NewWorkflowOptions setInput(Object input) {
-    this.newOrchestrationInstanceOptions.setInput(input);
+    this.input = input;
     return this;
   }
 
   /**
    * Sets the start time of the new workflow.
    *
-   * <p>By default, new workflow instances start executing immediately. This method can be used
-   * to start them at a specific time in the future.
+   * <p>By default, new workflow instances start executing immediately. This
+   * method can be used to start them at a specific time in the future. If set,
+   * Dapr will not wait for the workflow to "start" which can improve
+   * throughput of creating many workflows.
    *
    * @param startTime the start time of the new workflow
    * @return this {@link NewWorkflowOptions} object
    */
   public NewWorkflowOptions setStartTime(Instant startTime) {
-    this.newOrchestrationInstanceOptions.setStartTime(startTime);
+    this.startTime = startTime;
     return this;
   }
 
@@ -78,7 +82,7 @@ public class NewWorkflowOptions {
    * @return the user-specified version of the new workflow.
    */
   public String getVersion() {
-    return this.newOrchestrationInstanceOptions.getVersion();
+    return this.version;
   }
 
   /**
@@ -87,7 +91,7 @@ public class NewWorkflowOptions {
    * @return the instance ID of the new workflow.
    */
   public String getInstanceId() {
-    return this.newOrchestrationInstanceOptions.getInstanceId();
+    return this.instanceId;
   }
 
   /**
@@ -96,7 +100,7 @@ public class NewWorkflowOptions {
    * @return the input of the new workflow.
    */
   public Object getInput() {
-    return this.newOrchestrationInstanceOptions.getInput();
+    return this.input;
   }
 
   /**
@@ -105,10 +109,7 @@ public class NewWorkflowOptions {
    * @return the configured start time of the new workflow instance.
    */
   public Instant getStartTime() {
-    return this.newOrchestrationInstanceOptions.getStartTime();
+    return this.startTime;
   }
 
-  public NewOrchestrationInstanceOptions getNewOrchestrationInstanceOptions() {
-    return newOrchestrationInstanceOptions;
-  }
 }

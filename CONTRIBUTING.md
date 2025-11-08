@@ -12,6 +12,8 @@ This project has adopted the [Contributor Covenant Code of Conduct](https://gith
 
 Contributions come in many forms: submitting issues, writing code, participating in discussions and community calls.
 
+To learn more about becoming a contributor and the different roles within the Dapr community (Contributor, Approver, Maintainer), please refer to our [Community Membership](https://github.com/dapr/community/blob/master/community-membership.md) documentation.
+
 This document provides the guidelines for how to contribute to the Dapr project.
 
 ## Issues
@@ -49,18 +51,77 @@ Before you file an issue, make sure you've checked the following:
 
 This section describes the guidelines for contributing code / docs to Dapr.
 
+### Things to consider when adding new API to SDK
+
+1. All the new API's go under [dapr-sdk maven package](https://github.com/dapr/java-sdk/tree/master/sdk)
+2. Make sure there is an example talking about how to use the API along with a README with mechanical markdown. [Example](https://github.com/dapr/java-sdk/pull/1235/files#diff-69ed756c4c01fd5fa884aac030dccb8f3f4d4fefa0dc330862d55a6f87b34a14)
+
+#### Mechanical Markdown
+
+Mechanical markdown is used to validate example outputs in our CI pipeline. It ensures that the expected output in README files matches the actual output when running the examples. This helps maintain example output, catches any unintended changes in example behavior, and regressions.
+
+To test mechanical markdown locally:
+
+1. Install the package:
+```bash
+pip3 install mechanical-markdown
+```
+
+2. Run the test from the respective examples README directory, for example:
+```bash
+cd examples
+mm.py ./src/main/java/io/dapr/examples/workflows/README.md
+```
+
+The test will:
+- Parse the STEP markers in the README
+- Execute the commands specified in the markers
+- Compare the actual output with the expected output
+- Report any mismatches
+
+When writing STEP markers:
+- Use `output_match_mode: substring` for flexible matching
+- Quote strings containing special YAML characters (like `:`, `*`, `'`)
+- Set appropriate timeouts for long-running examples
+
+Example STEP marker:
+```yaml
+<!-- STEP
+name: Run example
+output_match_mode: substring
+expected_stdout_lines:
+  - "Starting workflow: io.dapr.examples.workflows.compensation.BookTripWorkflow"
+  ...
+background: true
+timeout_seconds: 60
+-->
+```
+
 ### Pull Requests
 
 All contributions come through pull requests. To submit a proposed change, we recommend following this workflow:
 
 1. Make sure there's an issue (bug or proposal) raised, which sets the expectations for the contribution you are about to make.
-1. Fork the relevant repo and create a new branch
-1. Create your change
+2. Fork the relevant repo and create a new branch
+3. Create your change
     - Code changes require tests
-1. Update relevant documentation for the change
-1. Commit and open a PR
-1. Wait for the CI process to finish and make sure all checks are green
-1. A maintainer of the project will be assigned, and you can expect a review within a few days
+4. Update relevant documentation for the change
+5. Check the code style
+6. Commit and open a PR
+7. Wait for the CI process to finish and make sure all checks are green
+8. A maintainer of the project will be assigned, and you can expect a review within a few days
+9. All the files have the Copyright header.
+
+### Configure the code style with checkstyle
+
+The project contains a checkstyle file (`checkstyle.xml`) that must be used for formatting the code.
+
+* IntelliJ IDEA
+   You can use [CheckStyle-IDEA plugin](https://plugins.jetbrains.com/plugin/1065-checkstyle-idea).
+* VSCode
+   You can use [Checkstyle for Java](https://marketplace.visualstudio.com/items?itemName=shengchen.vscode-checkstyle).
+* Eclipse
+  You can use [Eclipse Checkstyle Plugin](https://checkstyle.org/eclipse-cs/#!/)
 
 #### Use work-in-progress PRs for early feedback
 
@@ -119,6 +180,10 @@ A non-exclusive list of code that must be places in `vendor/`:
 - Tools or libraries or protocols that are open source, free software, or commercially licensed.
 
 **Thank You!** - Your contributions to open source, large or small, make projects like this possible. Thank you for taking the time to contribute.
+
+## Github Dapr Bot Commands
+
+Checkout the [daprbot documentation](https://docs.dapr.io/contributing/daprbot/) for Github commands you can run in this repo for common tasks. For example, you can run the `/assign` (as a comment on an issue) to assign the issue to yourself.
 
 ## Code of Conduct
 

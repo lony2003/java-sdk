@@ -14,11 +14,15 @@ limitations under the License.
 package io.dapr.client;
 
 import com.google.common.base.Strings;
+import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.Empty;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
 import io.dapr.client.domain.ActorMetadata;
 import io.dapr.client.domain.AppConnectionPropertiesHealthMetadata;
 import io.dapr.client.domain.AppConnectionPropertiesMetadata;
+import io.dapr.client.domain.AssistantMessage;
 import io.dapr.client.domain.BulkPublishEntry;
 import io.dapr.client.domain.BulkPublishRequest;
 import io.dapr.client.domain.BulkPublishResponse;
@@ -26,18 +30,42 @@ import io.dapr.client.domain.BulkPublishResponseFailedEntry;
 import io.dapr.client.domain.CloudEvent;
 import io.dapr.client.domain.ComponentMetadata;
 import io.dapr.client.domain.ConfigurationItem;
+import io.dapr.client.domain.ConstantFailurePolicy;
+import io.dapr.client.domain.ConversationInput;
+import io.dapr.client.domain.ConversationInputAlpha2;
+import io.dapr.client.domain.ConversationMessage;
+import io.dapr.client.domain.ConversationMessageContent;
+import io.dapr.client.domain.ConversationOutput;
+import io.dapr.client.domain.ConversationRequest;
+import io.dapr.client.domain.ConversationRequestAlpha2;
+import io.dapr.client.domain.ConversationResponse;
+import io.dapr.client.domain.ConversationResponseAlpha2;
+import io.dapr.client.domain.ConversationResultAlpha2;
+import io.dapr.client.domain.ConversationResultChoices;
+import io.dapr.client.domain.ConversationResultMessage;
+import io.dapr.client.domain.ConversationToolCalls;
+import io.dapr.client.domain.ConversationToolCallsOfFunction;
+import io.dapr.client.domain.ConversationTools;
+import io.dapr.client.domain.ConversationToolsFunction;
 import io.dapr.client.domain.DaprMetadata;
+import io.dapr.client.domain.DeleteJobRequest;
 import io.dapr.client.domain.DeleteStateRequest;
+import io.dapr.client.domain.DropFailurePolicy;
 import io.dapr.client.domain.ExecuteStateTransactionRequest;
+import io.dapr.client.domain.FailurePolicy;
+import io.dapr.client.domain.FailurePolicyType;
 import io.dapr.client.domain.GetBulkSecretRequest;
 import io.dapr.client.domain.GetBulkStateRequest;
 import io.dapr.client.domain.GetConfigurationRequest;
+import io.dapr.client.domain.GetJobRequest;
+import io.dapr.client.domain.GetJobResponse;
 import io.dapr.client.domain.GetSecretRequest;
 import io.dapr.client.domain.GetStateRequest;
 import io.dapr.client.domain.HttpEndpointMetadata;
 import io.dapr.client.domain.HttpExtension;
 import io.dapr.client.domain.InvokeBindingRequest;
 import io.dapr.client.domain.InvokeMethodRequest;
+import io.dapr.client.domain.JobSchedule;
 import io.dapr.client.domain.LockRequest;
 import io.dapr.client.domain.PublishEventRequest;
 import io.dapr.client.domain.QueryStateItem;
@@ -45,11 +73,13 @@ import io.dapr.client.domain.QueryStateRequest;
 import io.dapr.client.domain.QueryStateResponse;
 import io.dapr.client.domain.RuleMetadata;
 import io.dapr.client.domain.SaveStateRequest;
+import io.dapr.client.domain.ScheduleJobRequest;
 import io.dapr.client.domain.State;
 import io.dapr.client.domain.StateOptions;
 import io.dapr.client.domain.SubscribeConfigurationRequest;
 import io.dapr.client.domain.SubscribeConfigurationResponse;
 import io.dapr.client.domain.SubscriptionMetadata;
+import io.dapr.client.domain.ToolMessage;
 import io.dapr.client.domain.TransactionalStateOperation;
 import io.dapr.client.domain.UnlockRequest;
 import io.dapr.client.domain.UnlockResponseStatus;
@@ -90,9 +120,12 @@ import reactor.util.context.ContextView;
 import reactor.util.retry.Retry;
 
 import javax.annotation.Nonnull;
-
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1291,6 +1324,204 @@ public class DaprClientImpl extends AbstractDaprClient {
   }
 
   /**
+   * {@inheritDoc}
+   */
+  public Mono<Void> scheduleJob(ScheduleJobRequest scheduleJobRequest) {
+    try {
+      validateScheduleJobRequest(scheduleJobRequest);
+
+      DaprProtos.Job.Builder jobBuilder = DaprProtos.Job.newBuilder();
+      jobBuilder.setName(scheduleJobRequest.getName());
+
+      DateTimeFormatter iso8601Formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+              .withZone(ZoneOffset.UTC);
+
+      if (scheduleJobRequest.getData() != null) {
+        jobBuilder.setData(Any.newBuilder()
+            .setValue(ByteString.copyFrom(scheduleJobRequest.getData())).build());
+      }
+
+      if (scheduleJobRequest.getSchedule() != null) {
+        jobBuilder.setSchedule(scheduleJobRequest.getSchedule().getExpression());
+      }
+
+      if (scheduleJobRequest.getTtl() != null) {
+        jobBuilder.setTtl(iso8601Formatter.format(scheduleJobRequest.getTtl()));
+      }
+
+      if (scheduleJobRequest.getRepeats() != null) {
+        jobBuilder.setRepeats(scheduleJobRequest.getRepeats());
+      }
+
+      if (scheduleJobRequest.getDueTime() != null) {
+        jobBuilder.setDueTime(iso8601Formatter.format(scheduleJobRequest.getDueTime()));
+      }
+
+      if (scheduleJobRequest.getFailurePolicy() != null) {
+        jobBuilder.setFailurePolicy(getJobFailurePolicy(scheduleJobRequest.getFailurePolicy()));
+      }
+
+
+      Mono<DaprProtos.ScheduleJobResponse> scheduleJobResponseMono =
+          Mono.deferContextual(context -> this.createMono(
+                  it -> intercept(context, asyncStub)
+                          .scheduleJobAlpha1(DaprProtos.ScheduleJobRequest.newBuilder()
+                                  .setOverwrite(scheduleJobRequest.getOverwrite())
+                                  .setJob(jobBuilder.build()).build(), it)
+              )
+          );
+
+      return scheduleJobResponseMono.then();
+    } catch (Exception ex) {
+      return DaprException.wrapMono(ex);
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public Mono<GetJobResponse> getJob(GetJobRequest getJobRequest) {
+    try {
+      validateGetJobRequest(getJobRequest);
+
+      Mono<DaprProtos.GetJobResponse> getJobResponseMono =
+          Mono.deferContextual(context -> this.createMono(
+                  it -> intercept(context, asyncStub)
+                      .getJobAlpha1(DaprProtos.GetJobRequest.newBuilder()
+                          .setName(getJobRequest.getName()).build(), it)
+              )
+          );
+
+      return getJobResponseMono.map(response -> {
+        DaprProtos.Job job = response.getJob();
+        GetJobResponse getJobResponse = null;
+
+        if (job.hasSchedule() && job.hasDueTime()) {
+          getJobResponse = new GetJobResponse(job.getName(), JobSchedule.fromString(job.getSchedule()));
+          getJobResponse.setDueTime(Instant.parse(job.getDueTime()));
+        } else if (job.hasSchedule()) {
+          getJobResponse = new GetJobResponse(job.getName(), JobSchedule.fromString(job.getSchedule()));
+        } else {
+          getJobResponse = new GetJobResponse(job.getName(), Instant.parse(job.getDueTime()));
+        }
+
+        if (job.hasFailurePolicy()) {
+          getJobResponse.setFailurePolicy(getJobFailurePolicy(job.getFailurePolicy()));
+        }
+
+        return getJobResponse
+            .setTtl(job.hasTtl() ? Instant.parse(job.getTtl()) : null)
+            .setData(job.hasData() ? job.getData().getValue().toByteArray() : null)
+            .setRepeat(job.hasRepeats() ? job.getRepeats() : null);
+      });
+    } catch (Exception ex) {
+      return DaprException.wrapMono(ex);
+    }
+  }
+
+  private FailurePolicy getJobFailurePolicy(CommonProtos.JobFailurePolicy jobFailurePolicy) {
+    if (jobFailurePolicy.hasDrop()) {
+      return new DropFailurePolicy();
+    }
+
+    CommonProtos.JobFailurePolicyConstant jobFailurePolicyConstant = jobFailurePolicy.getConstant();
+    if (jobFailurePolicyConstant.hasInterval() && jobFailurePolicyConstant.hasMaxRetries()) {
+      return new ConstantFailurePolicy(jobFailurePolicyConstant.getMaxRetries())
+              .setDurationBetweenRetries(Duration.of(jobFailurePolicyConstant.getInterval().getNanos(),
+                  ChronoUnit.NANOS));
+    }
+
+    if (jobFailurePolicyConstant.hasMaxRetries()) {
+      return new ConstantFailurePolicy(jobFailurePolicyConstant.getMaxRetries());
+    }
+
+    return new ConstantFailurePolicy(
+        Duration.of(jobFailurePolicyConstant.getInterval().getNanos(),
+            ChronoUnit.NANOS));
+  }
+
+  private CommonProtos.JobFailurePolicy getJobFailurePolicy(FailurePolicy failurePolicy) {
+    CommonProtos.JobFailurePolicy.Builder jobFailurePolicyBuilder = CommonProtos.JobFailurePolicy.newBuilder();
+
+    if (failurePolicy.getFailurePolicyType() == FailurePolicyType.DROP) {
+      jobFailurePolicyBuilder.setDrop(CommonProtos.JobFailurePolicyDrop.newBuilder().build());
+      return jobFailurePolicyBuilder.build();
+    }
+
+    CommonProtos.JobFailurePolicyConstant.Builder constantPolicyBuilder =
+        CommonProtos.JobFailurePolicyConstant.newBuilder();
+    ConstantFailurePolicy jobConstantFailurePolicy = (ConstantFailurePolicy)failurePolicy;
+
+    if (jobConstantFailurePolicy.getMaxRetries() != null) {
+      constantPolicyBuilder.setMaxRetries(jobConstantFailurePolicy.getMaxRetries());
+    }
+
+    if (jobConstantFailurePolicy.getDurationBetweenRetries() != null) {
+      constantPolicyBuilder.setInterval(com.google.protobuf.Duration.newBuilder()
+          .setNanos(jobConstantFailurePolicy.getDurationBetweenRetries().getNano()).build());
+    }
+
+    jobFailurePolicyBuilder.setConstant(constantPolicyBuilder.build());
+
+    return jobFailurePolicyBuilder.build();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public Mono<Void> deleteJob(DeleteJobRequest deleteJobRequest) {
+    try {
+      validateDeleteJobRequest(deleteJobRequest);
+
+      Mono<DaprProtos.DeleteJobResponse> deleteJobResponseMono =
+          Mono.deferContextual(context -> this.createMono(
+                  it -> intercept(context, asyncStub)
+                      .deleteJobAlpha1(DaprProtos.DeleteJobRequest.newBuilder()
+                          .setName(deleteJobRequest.getName()).build(), it)
+              )
+          );
+
+      return deleteJobResponseMono.then();
+    } catch (Exception ex) {
+      return DaprException.wrapMono(ex);
+    }
+  }
+
+  private void validateScheduleJobRequest(ScheduleJobRequest scheduleJobRequest) {
+    if (scheduleJobRequest == null) {
+      throw new IllegalArgumentException("scheduleJobRequest cannot be null");
+    }
+
+    if (scheduleJobRequest.getName() == null || scheduleJobRequest.getName().isEmpty()) {
+      throw new IllegalArgumentException("Name in the request cannot be null or empty");
+    }
+
+    if (scheduleJobRequest.getSchedule() == null && scheduleJobRequest.getDueTime() == null) {
+      throw new IllegalArgumentException("At least one of schedule or dueTime must be provided");
+    }
+  }
+
+  private void validateGetJobRequest(GetJobRequest getJobRequest) {
+    if (getJobRequest == null) {
+      throw new IllegalArgumentException("getJobRequest cannot be null");
+    }
+
+    if (getJobRequest.getName() == null || getJobRequest.getName().isEmpty()) {
+      throw new IllegalArgumentException("Name in the request cannot be null or empty");
+    }
+  }
+
+  private void validateDeleteJobRequest(DeleteJobRequest deleteJobRequest) {
+    if (deleteJobRequest == null) {
+      throw new IllegalArgumentException("deleteJobRequest cannot be null");
+    }
+
+    if (deleteJobRequest.getName() == null || deleteJobRequest.getName().isEmpty()) {
+      throw new IllegalArgumentException("Name in the request cannot be null or empty");
+    }
+  }
+
+  /**
    * Build a new Configuration Item from provided parameter.
    *
    * @param configurationItem CommonProtos.ConfigurationItem
@@ -1402,6 +1633,352 @@ public class DaprClientImpl extends AbstractDaprClient {
             });
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Deprecated(forRemoval = true)
+  @Override
+  public Mono<ConversationResponse> converse(ConversationRequest conversationRequest) {
+
+    try {
+      validateConversationRequest(conversationRequest);
+
+      DaprProtos.ConversationRequest.Builder protosConversationRequestBuilder = DaprProtos.ConversationRequest
+          .newBuilder().setTemperature(conversationRequest.getTemperature())
+          .setScrubPII(conversationRequest.isScrubPii())
+          .setName(conversationRequest.getName());
+
+      if (conversationRequest.getContextId() != null) {
+        protosConversationRequestBuilder.setContextID(conversationRequest.getContextId());
+      }
+
+      for (ConversationInput input : conversationRequest.getInputs()) {
+        if (input.getContent() == null || input.getContent().isEmpty()) {
+          throw new IllegalArgumentException("Conversation input content cannot be null or empty.");
+        }
+
+        DaprProtos.ConversationInput.Builder conversationInputOrBuilder = DaprProtos.ConversationInput.newBuilder()
+            .setContent(input.getContent())
+            .setScrubPII(input.isScrubPii());
+
+        if (input.getRole() != null) {
+          conversationInputOrBuilder.setRole(input.getRole().toString());
+        }
+
+        protosConversationRequestBuilder.addInputs(conversationInputOrBuilder.build());
+      }
+
+      Mono<DaprProtos.ConversationResponse> conversationResponseMono = Mono.deferContextual(
+          context -> this.createMono(
+              it -> intercept(context, asyncStub)
+                  .converseAlpha1(protosConversationRequestBuilder.build(), it)
+          )
+      );
+
+      return conversationResponseMono.map(conversationResponse -> {
+
+        List<ConversationOutput> conversationOutputs = new ArrayList<>();
+        for (DaprProtos.ConversationResult conversationResult : conversationResponse.getOutputsList()) {
+          Map<String, byte[]> parameters = new HashMap<>();
+          for (Map.Entry<String, Any> entrySet : conversationResult.getParametersMap().entrySet()) {
+            parameters.put(entrySet.getKey(), entrySet.getValue().toByteArray());
+          }
+
+          ConversationOutput conversationOutput =
+              new ConversationOutput(conversationResult.getResult(), parameters);
+          conversationOutputs.add(conversationOutput);
+        }
+
+        return new ConversationResponse(conversationResponse.getContextID(), conversationOutputs);
+      });
+    } catch (Exception ex) {
+      return DaprException.wrapMono(ex);
+    }
+  }
+
+  private void validateConversationRequest(ConversationRequest conversationRequest) {
+    if ((conversationRequest.getName() == null) || (conversationRequest.getName().trim().isEmpty())) {
+      throw new IllegalArgumentException("LLM name cannot be null or empty.");
+    }
+
+    if ((conversationRequest.getInputs() == null) || (conversationRequest
+        .getInputs().isEmpty())) {
+      throw new IllegalArgumentException("Conversation inputs cannot be null or empty.");
+    }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public Mono<ConversationResponseAlpha2> converseAlpha2(ConversationRequestAlpha2 conversationRequestAlpha2) {
+    try {
+      if ((conversationRequestAlpha2.getName() == null) || (conversationRequestAlpha2.getName().trim().isEmpty())) {
+        throw new IllegalArgumentException("LLM name cannot be null or empty.");
+      }
+
+      if (conversationRequestAlpha2.getInputs() == null || conversationRequestAlpha2.getInputs().isEmpty()) {
+        throw new IllegalArgumentException("Conversation Inputs cannot be null or empty.");
+      }
+
+      DaprProtos.ConversationRequestAlpha2 protoRequest = buildConversationRequestProto(conversationRequestAlpha2);
+      
+      Mono<DaprProtos.ConversationResponseAlpha2> conversationResponseMono = Mono.deferContextual(
+          context -> this.createMono(
+              it -> intercept(context, asyncStub).converseAlpha2(protoRequest, it)
+          )
+      );
+      
+      DaprProtos.ConversationResponseAlpha2 conversationResponse = conversationResponseMono.block();
+
+      assert conversationResponse != null;
+      List<ConversationResultAlpha2> results = buildConversationResults(conversationResponse.getOutputsList());
+      return Mono.just(new ConversationResponseAlpha2(conversationResponse.getContextId(), results));
+    } catch (Exception ex) {
+      return DaprException.wrapMono(ex);
+    }
+  }
+
+  private DaprProtos.ConversationRequestAlpha2 buildConversationRequestProto(ConversationRequestAlpha2 request) {
+    DaprProtos.ConversationRequestAlpha2.Builder builder = DaprProtos.ConversationRequestAlpha2
+        .newBuilder()
+        .setTemperature(request.getTemperature())
+        .setScrubPii(request.isScrubPii())
+        .setName(request.getName());
+
+    if (request.getContextId() != null) {
+      builder.setContextId(request.getContextId());
+    }
+
+    if (request.getToolChoice() != null) {
+      builder.setToolChoice(request.getToolChoice());
+    }
+
+
+    if (request.getTools() != null) {
+      for (ConversationTools tool : request.getTools()) {
+        builder.addTools(buildConversationTools(tool));
+      }
+    }
+
+    if (request.getMetadata() != null) {
+      builder.putAllMetadata(request.getMetadata());
+    }
+
+    if (request.getParameters() != null) {
+      Map<String, Any> parameters = request.getParameters()
+          .entrySet().stream()
+          .collect(Collectors.toMap(
+              Map.Entry::getKey,
+              e -> {
+                try {
+                  return Any.newBuilder().setValue(ByteString.copyFrom(objectSerializer.serialize(e.getValue())))
+                      .build();
+                } catch (IOException ex) {
+                  throw new RuntimeException(ex);
+                }
+              })
+          );
+      builder.putAllParameters(parameters);
+    }
+
+    for (ConversationInputAlpha2 input : request.getInputs()) {
+      DaprProtos.ConversationInputAlpha2.Builder inputBuilder = DaprProtos.ConversationInputAlpha2
+              .newBuilder()
+              .setScrubPii(input.isScrubPii());
+
+      if (input.getMessages() != null) {
+        for (ConversationMessage message : input.getMessages()) {
+          DaprProtos.ConversationMessage protoMessage = buildConversationMessage(message);
+          inputBuilder.addMessages(protoMessage);
+        }
+      }
+
+      builder.addInputs(inputBuilder.build());
+    }
+    
+    return builder.build();
+  }
+
+  private DaprProtos.ConversationTools buildConversationTools(ConversationTools tool) {
+    ConversationToolsFunction function = tool.getFunction();
+
+    DaprProtos.ConversationToolsFunction.Builder protoFunction = DaprProtos.ConversationToolsFunction.newBuilder()
+        .setName(function.getName());
+
+    if (function.getDescription() != null) {
+      protoFunction.setDescription(function.getDescription());
+    }
+
+    if (function.getParameters() != null) {
+      Map<String, Value> functionParams = function.getParameters()
+          .entrySet().stream()
+          .collect(Collectors.toMap(
+              Map.Entry::getKey,
+              e -> {
+                try {
+                  return ProtobufValueHelper.toProtobufValue(e.getValue());
+                } catch (IOException ex) {
+                  throw new RuntimeException(ex);
+                }
+              }
+          ));
+
+      protoFunction.setParameters(Struct.newBuilder().putAllFields(functionParams).build());
+    }
+
+    return DaprProtos.ConversationTools.newBuilder().setFunction(protoFunction).build();
+  }
+
+  private DaprProtos.ConversationMessage buildConversationMessage(ConversationMessage message) {
+    DaprProtos.ConversationMessage.Builder messageBuilder = DaprProtos.ConversationMessage.newBuilder();
+
+    switch (message.getRole()) {
+      case TOOL:
+        DaprProtos.ConversationMessageOfTool.Builder toolMessage =
+            DaprProtos.ConversationMessageOfTool.newBuilder();
+        if (message.getName() != null) {
+          toolMessage.setName(message.getName());
+        }
+        if (message.getContent() != null) {
+          toolMessage.addAllContent(getConversationMessageContent(message));
+        }
+        if (((ToolMessage)message).getToolId() != null) {
+          toolMessage.setToolId(((ToolMessage)message).getToolId());
+        }
+        messageBuilder.setOfTool(toolMessage);
+        break;
+      case USER:
+        DaprProtos.ConversationMessageOfUser.Builder userMessage =
+            DaprProtos.ConversationMessageOfUser.newBuilder();
+        if (message.getName() != null) {
+          userMessage.setName(message.getName());
+        }
+        if (message.getContent() != null) {
+          userMessage.addAllContent(getConversationMessageContent(message));
+        }
+        messageBuilder.setOfUser(userMessage);
+        break;
+      case ASSISTANT:
+        DaprProtos.ConversationMessageOfAssistant.Builder assistantMessage =
+            DaprProtos.ConversationMessageOfAssistant.newBuilder();
+
+        if (message.getName() != null) {
+          assistantMessage.setName(message.getName());
+        }
+        if (message.getContent() != null) {
+          assistantMessage.addAllContent(getConversationMessageContent(message));
+        }
+        if (((AssistantMessage)message).getToolCalls() != null) {
+          assistantMessage.addAllToolCalls(getConversationToolCalls((AssistantMessage)message));
+        }
+        messageBuilder.setOfAssistant(assistantMessage);
+        break;
+      case DEVELOPER:
+        DaprProtos.ConversationMessageOfDeveloper.Builder developerMessage =
+            DaprProtos.ConversationMessageOfDeveloper.newBuilder();
+        if (message.getName() != null) {
+          developerMessage.setName(message.getName());
+        }
+        if (message.getContent() != null) {
+          developerMessage.addAllContent(getConversationMessageContent(message));
+        }
+        messageBuilder.setOfDeveloper(developerMessage);
+        break;
+      case SYSTEM:
+        DaprProtos.ConversationMessageOfSystem.Builder systemMessage =
+            DaprProtos.ConversationMessageOfSystem.newBuilder();
+        if (message.getName() != null) {
+          systemMessage.setName(message.getName());
+        }
+        if (message.getContent() != null) {
+          systemMessage.addAllContent(getConversationMessageContent(message));
+        }
+        messageBuilder.setOfSystem(systemMessage);
+        break;
+      default:
+        throw new IllegalArgumentException("No role of type " + message.getRole() + " found");
+    }
+
+    return messageBuilder.build();
+  }
+
+  private List<ConversationResultAlpha2> buildConversationResults(
+      List<DaprProtos.ConversationResultAlpha2> protoResults) {
+    List<ConversationResultAlpha2> results = new ArrayList<>();
+    
+    for (DaprProtos.ConversationResultAlpha2 protoResult : protoResults) {
+      List<ConversationResultChoices> choices = new ArrayList<>();
+        
+      for (DaprProtos.ConversationResultChoices protoChoice : protoResult.getChoicesList()) {
+        ConversationResultMessage message = buildConversationResultMessage(protoChoice);
+        choices.add(new ConversationResultChoices(protoChoice.getFinishReason(), protoChoice.getIndex(), message));
+      }  
+
+      results.add(new ConversationResultAlpha2(choices));
+    }
+    
+    return results;
+  }
+
+  private ConversationResultMessage buildConversationResultMessage(DaprProtos.ConversationResultChoices protoChoice) {
+    if (!protoChoice.hasMessage()) {
+      return null;
+    }
+
+    List<ConversationToolCalls> toolCalls = new ArrayList<>();
+
+    for (DaprProtos.ConversationToolCalls protoToolCall : protoChoice.getMessage().getToolCallsList()) {
+      ConversationToolCallsOfFunction function = null;
+      if (protoToolCall.hasFunction()) {
+        function = new ConversationToolCallsOfFunction(
+            protoToolCall.getFunction().getName(),
+            protoToolCall.getFunction().getArguments()
+        );
+      }
+
+      ConversationToolCalls conversationToolCalls = new ConversationToolCalls(function);
+      conversationToolCalls.setId(protoToolCall.getId());
+
+      toolCalls.add(conversationToolCalls);
+    }
+    
+    return new ConversationResultMessage(protoChoice.getMessage().getContent(), toolCalls
+    );
+  }
+
+  private List<DaprProtos.ConversationMessageContent> getConversationMessageContent(
+      ConversationMessage conversationMessage) {
+
+    List<DaprProtos.ConversationMessageContent> conversationMessageContents = new ArrayList<>();
+    for (ConversationMessageContent conversationMessageContent: conversationMessage.getContent()) {
+      conversationMessageContents.add(DaprProtos.ConversationMessageContent.newBuilder()
+          .setText(conversationMessageContent.getText())
+          .build());
+    }
+
+    return conversationMessageContents;
+  }
+
+  private List<DaprProtos.ConversationToolCalls> getConversationToolCalls(
+      AssistantMessage assistantMessage) {
+    List<DaprProtos.ConversationToolCalls> conversationToolCalls = new ArrayList<>();
+    for (ConversationToolCalls conversationToolCall: assistantMessage.getToolCalls()) {
+      DaprProtos.ConversationToolCalls.Builder toolCallsBuilder = DaprProtos.ConversationToolCalls.newBuilder()
+          .setFunction(DaprProtos.ConversationToolCallsOfFunction.newBuilder()
+                  .setName(conversationToolCall.getFunction().getName())
+                  .setArguments(conversationToolCall.getFunction().getArguments())
+                  .build());
+      if (conversationToolCall.getId() != null) {
+        toolCallsBuilder.setId(conversationToolCall.getId());
+      }
+
+      conversationToolCalls.add(toolCallsBuilder.build());
+    }
+
+    return conversationToolCalls;
+  }
+
   private DaprMetadata buildDaprMetadata(DaprProtos.GetMetadataResponse response) throws IOException {
     String id = response.getId();
     String runtimeVersion = response.getRuntimeVersion();
@@ -1494,5 +2071,4 @@ public class DaprClientImpl extends AbstractDaprClient {
     return new AppConnectionPropertiesHealthMetadata(healthCheckPath, healthProbeInterval, healthProbeTimeout,
         healthThreshold);
   }
-
 }

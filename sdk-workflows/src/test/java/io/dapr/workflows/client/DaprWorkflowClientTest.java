@@ -13,9 +13,10 @@ limitations under the License.
 
 package io.dapr.workflows.client;
 
-import com.microsoft.durabletask.DurableTaskClient;
-import com.microsoft.durabletask.OrchestrationMetadata;
-import com.microsoft.durabletask.OrchestrationRuntimeStatus;
+import io.dapr.durabletask.DurableTaskClient;
+import io.dapr.durabletask.NewOrchestrationInstanceOptions;
+import io.dapr.durabletask.OrchestrationMetadata;
+import io.dapr.durabletask.OrchestrationRuntimeStatus;
 import io.dapr.workflows.Workflow;
 import io.dapr.workflows.WorkflowContext;
 import io.dapr.workflows.WorkflowStub;
@@ -23,6 +24,7 @@ import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.lang.reflect.Constructor;
 import java.time.Duration;
@@ -33,12 +35,15 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DaprWorkflowClientTest {
+
   private static Constructor<DaprWorkflowClient> constructor;
   private DaprWorkflowClient client;
   private DurableTaskClient mockInnerClient;
@@ -65,6 +70,7 @@ public class DaprWorkflowClientTest {
   public void setUp() throws Exception {
     mockInnerClient = mock(DurableTaskClient.class);
     mockGrpcChannel = mock(ManagedChannel.class);
+
     when(mockGrpcChannel.shutdown()).thenReturn(mockGrpcChannel);
 
     client = constructor.newInstance(mockInnerClient, mockGrpcChannel);
@@ -110,14 +116,23 @@ public class DaprWorkflowClientTest {
   @Test
   public void scheduleNewWorkflowWithNewWorkflowOption() {
     String expectedName = TestWorkflow.class.getCanonicalName();
+    Instant expectedStartTime = Instant.now();
     Object expectedInput = new Object();
     NewWorkflowOptions newWorkflowOptions = new NewWorkflowOptions();
-    newWorkflowOptions.setInput(expectedInput).setStartTime(Instant.now());
+    newWorkflowOptions.setInput(expectedInput).setStartTime(expectedStartTime);
 
+    mockInnerClient.scheduleNewOrchestrationInstance(any(String.class), any(NewOrchestrationInstanceOptions.class));
     client.scheduleNewWorkflow(TestWorkflow.class, newWorkflowOptions);
 
+    ArgumentCaptor<NewOrchestrationInstanceOptions> captor = ArgumentCaptor.forClass(
+        NewOrchestrationInstanceOptions.class
+    );
+
     verify(mockInnerClient, times(1))
-        .scheduleNewOrchestrationInstance(expectedName, newWorkflowOptions.getNewOrchestrationInstanceOptions());
+        .scheduleNewOrchestrationInstance(eq(expectedName), captor.capture());
+
+    assertEquals(expectedStartTime, captor.getValue().getStartTime());
+    assertEquals(expectedInput, captor.getValue().getInput());
   }
 
   @Test
@@ -141,12 +156,12 @@ public class DaprWorkflowClientTest {
     when(mockInnerClient.getInstanceMetadata(instanceId, true)).thenReturn(expectedMetadata);
 
     // Act
-    WorkflowInstanceStatus metadata = client.getInstanceState(instanceId, true);
+    WorkflowState metadata = client.getWorkflowState(instanceId, true);
 
     // Assert
     verify(mockInnerClient, times(1)).getInstanceMetadata(instanceId, true);
     assertNotEquals(metadata, null);
-    assertEquals(metadata.getInstanceId(), expectedMetadata.getInstanceId());
+    assertEquals(metadata.getWorkflowId(), expectedMetadata.getInstanceId());
     assertEquals(metadata.getName(), expectedMetadata.getName());
     assertEquals(metadata.isRunning(), expectedMetadata.isRunning());
     assertEquals(metadata.isCompleted(), expectedMetadata.isCompleted());
@@ -164,12 +179,12 @@ public class DaprWorkflowClientTest {
     when(mockInnerClient.waitForInstanceStart(instanceId, timeout, true)).thenReturn(expectedMetadata);
 
     // Act
-    WorkflowInstanceStatus result = client.waitForInstanceStart(instanceId, timeout, true);
+    WorkflowState result = client.waitForWorkflowStart(instanceId, timeout, true);
 
     // Assert
     verify(mockInnerClient, times(1)).waitForInstanceStart(instanceId, timeout, true);
     assertNotEquals(result, null);
-    assertEquals(result.getInstanceId(), expectedMetadata.getInstanceId());
+    assertEquals(result.getWorkflowId(), expectedMetadata.getInstanceId());
   }
 
   @Test
@@ -184,12 +199,12 @@ public class DaprWorkflowClientTest {
     when(mockInnerClient.waitForInstanceCompletion(instanceId, timeout, true)).thenReturn(expectedMetadata);
 
     // Act
-    WorkflowInstanceStatus result = client.waitForInstanceCompletion(instanceId, timeout, true);
+    WorkflowState result = client.waitForWorkflowCompletion(instanceId, timeout, true);
 
     // Assert
     verify(mockInnerClient, times(1)).waitForInstanceCompletion(instanceId, timeout, true);
     assertNotEquals(result, null);
-    assertEquals(result.getInstanceId(), expectedMetadata.getInstanceId());
+    assertEquals(result.getWorkflowId(), expectedMetadata.getInstanceId());
   }
 
   @Test
@@ -203,23 +218,21 @@ public class DaprWorkflowClientTest {
   }
 
   @Test
+  public void suspendResumeInstance() {
+    String expectedArgument = "TestWorkflowInstanceId";
+    client.suspendWorkflow(expectedArgument, "suspending workflow instance");
+    client.resumeWorkflow(expectedArgument, "resuming workflow instance");
+    verify(mockInnerClient, times(1)).suspendInstance(expectedArgument,
+            "suspending workflow instance");
+    verify(mockInnerClient, times(1)).resumeInstance(expectedArgument,
+            "resuming workflow instance");
+  }
+
+  @Test
   public void purgeInstance() {
     String expectedArgument = "TestWorkflowInstanceId";
-    client.purgeInstance(expectedArgument);
+    client.purgeWorkflow(expectedArgument);
     verify(mockInnerClient, times(1)).purgeInstance(expectedArgument);
-  }
-
-  @Test
-  public void createTaskHub() {
-    boolean expectedArgument = true;
-    client.createTaskHub(expectedArgument);
-    verify(mockInnerClient, times(1)).createTaskHub(expectedArgument);
-  }
-
-  @Test
-  public void deleteTaskHub() {
-    client.deleteTaskHub();
-    verify(mockInnerClient, times(1)).deleteTaskHub();
   }
 
   @Test

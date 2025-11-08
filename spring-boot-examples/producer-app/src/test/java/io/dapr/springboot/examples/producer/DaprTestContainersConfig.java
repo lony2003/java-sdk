@@ -33,43 +33,49 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static io.dapr.testcontainers.DaprContainerConstants.DAPR_RUNTIME_IMAGE_TAG;
+
 @TestConfiguration(proxyBeanMethods = false)
 public class DaprTestContainersConfig {
 
   static final String CONNECTION_STRING =
           "host=postgres user=postgres password=password port=5432 connect_timeout=10 database=dapr_db_repository";
   static final Map<String, String> STATE_STORE_PROPERTIES = createStateStoreProperties();
-
+  static final Map<String, String> STATE_STORE_OUTBOX_PROPERTIES = createStateStoreOutboxProperties();
   static final Map<String, String> BINDING_PROPERTIES = Collections.singletonMap("connectionString", CONNECTION_STRING);
 
 
   @Bean
-  public Network getNetwork() {
-    Network defaultDaprNetwork = new Network() {
-      @Override
-      public String getId() {
-        return "dapr-network";
+  public Network getDaprNetwork(Environment env) {
+    boolean reuse = env.getProperty("reuse", Boolean.class, false);
+    if (reuse) {
+      Network defaultDaprNetwork = new Network() {
+        @Override
+        public String getId() {
+          return "dapr-network";
+        }
+
+        @Override
+        public void close() {
+
+        }
+
+        @Override
+        public Statement apply(Statement base, Description description) {
+          return null;
+        }
+      };
+
+      List<com.github.dockerjava.api.model.Network> networks = DockerClientFactory.instance().client().listNetworksCmd()
+          .withNameFilter("dapr-network").exec();
+      if (networks.isEmpty()) {
+        Network.builder().createNetworkCmdModifier(cmd -> cmd.withName("dapr-network")).build().getId();
+        return defaultDaprNetwork;
+      } else {
+        return defaultDaprNetwork;
       }
-
-      @Override
-      public void close() {
-
-      }
-
-      @Override
-      public Statement apply(Statement base, Description description) {
-        return null;
-      }
-    };
-
-    List<com.github.dockerjava.api.model.Network> networks = DockerClientFactory.instance().client().listNetworksCmd().withNameFilter("dapr-network").exec();
-    if (networks.isEmpty()) {
-      Network.builder()
-              .createNetworkCmdModifier(cmd -> cmd.withName("dapr-network"))
-              .build().getId();
-      return defaultDaprNetwork;
     } else {
-      return defaultDaprNetwork;
+      return Network.newNetwork();
     }
   }
 
@@ -80,7 +86,7 @@ public class DaprTestContainersConfig {
     return new RabbitMQContainer(DockerImageName.parse("rabbitmq:3.7.25-management-alpine"))
             .withExposedPorts(5672)
             .withNetworkAliases("rabbitmq")
-            .withReuse(true)
+            .withReuse(reuse)
             .withNetwork(daprNetwork);
 
   }
@@ -106,15 +112,14 @@ public class DaprTestContainersConfig {
     rabbitMqProperties.put("user", "guest");
     rabbitMqProperties.put("password", "guest");
 
-    return new DaprContainer("daprio/daprd:1.14.4")
+    return new DaprContainer(DAPR_RUNTIME_IMAGE_TAG)
             .withAppName("producer-app")
             .withNetwork(daprNetwork)
             .withComponent(new Component("kvstore", "state.postgresql", "v1", STATE_STORE_PROPERTIES))
             .withComponent(new Component("kvbinding", "bindings.postgresql", "v1", BINDING_PROPERTIES))
             .withComponent(new Component("pubsub", "pubsub.rabbitmq", "v1", rabbitMqProperties))
+            .withComponent(new Component("kvstore-outbox", "state.postgresql", "v1", STATE_STORE_OUTBOX_PROPERTIES))
             .withSubscription(new Subscription("app", "pubsub", "topic", "/subscribe"))
-//             .withDaprLogLevel(DaprLogLevel.DEBUG)
-//             .withLogConsumer(outputFrame -> System.out.println(outputFrame.getUtf8String()))
             .withAppPort(8080)
             .withAppHealthCheckPath("/actuator/health")
             .withAppChannelAddress("host.testcontainers.internal")
@@ -129,6 +134,15 @@ public class DaprTestContainersConfig {
     result.put("keyPrefix", "name");
     result.put("actorStateStore", String.valueOf(true));
     result.put("connectionString", CONNECTION_STRING);
+
+    return result;
+  }
+
+  private static Map<String, String> createStateStoreOutboxProperties() {
+    Map<String, String> result = new HashMap<>();
+    result.put("connectionString", CONNECTION_STRING);
+    result.put("outboxPublishPubsub", "pubsub");
+    result.put("outboxPublishTopic", "outbox-topic");
 
     return result;
   }

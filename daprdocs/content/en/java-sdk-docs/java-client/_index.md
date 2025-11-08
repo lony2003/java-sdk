@@ -9,13 +9,13 @@ description: How to get up and running with the Dapr Java SDK
 The Dapr client package allows you to interact with other Dapr applications from a Java application.
 
 {{% alert title="Note" color="primary" %}}
-If you haven't already, [try out one of the quickstarts]({{< ref quickstarts >}}) for a quick walk-through on how to use the Dapr Java SDK with an API building block.
+If you haven't already, [try out one of the quickstarts]({{% ref quickstarts %}}) for a quick walk-through on how to use the Dapr Java SDK with an API building block.
 
 {{% /alert %}}
 
 ## Prerequisites
 
-[Complete initial setup and import the Java SDK into your project]({{< ref java >}})
+[Complete initial setup and import the Java SDK into your project]({{% ref java %}})
 
 ## Initializing the client
 You can initialize a Dapr client as so:
@@ -24,21 +24,7 @@ You can initialize a Dapr client as so:
 DaprClient client = new DaprClientBuilder().build()
 ```
 
-This will connect to the default Dapr gRPC endpoint `localhost:50001`.
-
-
-#### Environment variables:  
-
-##### Dapr Sidecar Endpoints
-You can use the standardized `DAPR_GRPC_ENDPOINT` and `DAPR_HTTP_ENDPOINT` environment variables to
-specify a different gRPC or HTTP endpoint. When these variables are set, the client will automatically use them to connect to the Dapr sidecar.
-
-The legacy environment variables `DAPR_HTTP_PORT` and `DAPR_GRPC_PORT` are still supported, but `DAPR_GRPC_ENDPOINT` and `DAPR_HTTP_ENDPOINT` take precedence.
-
-##### Dapr API Token
-If your Dapr instance is configured to require the `DAPR_API_TOKEN` environment variable, you can
-set it in the environment and the client will use it automatically.  
-You can read more about Dapr API token authentication [here](https://docs.dapr.io/operations/security/api-token/).
+This will connect to the default Dapr gRPC endpoint `localhost:50001`. For information about configuring the client using environment variables and system properties, see [Properties]({{% ref properties.md %}}).
 
 #### Error Handling
 
@@ -66,7 +52,7 @@ Example of handling the DaprException and consuming the error details when using
 
 ## Building blocks
 
-The Java SDK allows you to interface with all of the [Dapr building blocks]({{< ref building-blocks >}}).
+The Java SDK allows you to interface with all of the [Dapr building blocks]({{% ref building-blocks %}}).
 
 ### Invoke a service
 
@@ -90,7 +76,7 @@ try (DaprClient client = (new DaprClientBuilder()).build()) {
 }
 ```
 
-- For a full guide on service invocation visit [How-To: Invoke a service]({{< ref howto-invoke-discover-services.md >}}).
+- For a full guide on service invocation visit [How-To: Invoke a service]({{% ref howto-invoke-discover-services.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/invoke) for code samples and instructions to try out service invocation
 
 ### Save & get application state
@@ -113,7 +99,7 @@ try (DaprClient client = (new DaprClientBuilder()).build()) {
 }
 ```
 
-- For a full list of state operations visit [How-To: Get & save state]({{< ref howto-get-save-state.md >}}).
+- For a full list of state operations visit [How-To: Get & save state]({{% ref howto-get-save-state.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/state) for code samples and instructions to try out state management
 
 ### Publish & subscribe to messages
@@ -239,7 +225,7 @@ class Solution {
 }
 ```
 
-- For a full guide on publishing messages and subscribing to a topic [How-To: Publish & subscribe]({{< ref howto-publish-subscribe.md >}}).
+- For a full guide on publishing messages and subscribing to a topic [How-To: Publish & subscribe]({{% ref howto-publish-subscribe.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/pubsub/http) for code samples and instructions to try out pub/sub
 
 ### Interact with output bindings
@@ -257,7 +243,7 @@ try (DaprClient client = (new DaprClientBuilder()).build()) {
 }
 ```
 
-- For a full guide on output bindings visit [How-To: Output bindings]({{< ref howto-bindings.md >}}).
+- For a full guide on output bindings visit [How-To: Output bindings]({{% ref howto-bindings.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/bindings/http) for code samples and instructions to try out output bindings.
 
 ### Interact with input bindings
@@ -279,7 +265,7 @@ public class myClass {
 }
 ```
 
-- For a full guide on input bindings, visit [How-To: Input bindings]({{< ref howto-triggers >}}).
+- For a full guide on input bindings, visit [How-To: Input bindings]({{% ref howto-triggers %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/bindings/http) for code samples and instructions to try out input bindings.
 
 ### Retrieve secrets
@@ -296,7 +282,7 @@ try (DaprClient client = (new DaprClientBuilder()).build()) {
 }
 ```
 
-- For a full guide on secrets visit [How-To: Retrieve secrets]({{< ref howto-secrets.md >}}).
+- For a full guide on secrets visit [How-To: Retrieve secrets]({{% ref howto-secrets.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/secrets) for code samples and instructions to try out retrieving secrets
 
 ### Actors
@@ -322,7 +308,7 @@ public interface DemoActor {
 }
 ```
 
-- For a full guide on actors visit [How-To: Use virtual actors in Dapr]({{< ref howto-actors.md >}}).
+- For a full guide on actors visit [How-To: Use virtual actors in Dapr]({{% ref howto-actors.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/actors) for code samples and instructions to try actors
 
 ### Get & Subscribe to application configurations
@@ -355,7 +341,7 @@ try (DaprPreviewClient client = (new DaprClientBuilder()).buildPreviewClient()) 
 }
 ```
 
-- For a full list of configuration operations visit [How-To: Manage configuration from a store]({{< ref howto-manage-configuration.md >}}).
+- For a full list of configuration operations visit [How-To: Manage configuration from a store]({{% ref howto-manage-configuration.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/configuration) for code samples and instructions to try out different configuration operations.
 
 ### Query saved state
@@ -425,7 +411,7 @@ try (DaprClient client = builder.build(); DaprPreviewClient previewClient = buil
         }
 }
 ```
-- For a full how-to on query state, visit [How-To: Query state]({{< ref howto-state-query-api.md >}}).
+- For a full how-to on query state, visit [How-To: Query state]({{% ref howto-state-query-api.md %}}).
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/querystate) for complete code sample.
 
 ### Distributed lock
@@ -491,7 +477,7 @@ public class DistributedLockGrpcClient {
 }
 ```
 
-- For a full how-to on distributed lock, visit [How-To: Use a Lock]({{< ref howto-use-distributed-lock.md >}})
+- For a full how-to on distributed lock, visit [How-To: Use a Lock]({{% ref howto-use-distributed-lock.md %}})
 - Visit [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/lock) for complete code sample.
 
 ### Workflow
@@ -500,7 +486,7 @@ public class DistributedLockGrpcClient {
 package io.dapr.examples.workflows;
 
 import io.dapr.workflows.client.DaprWorkflowClient;
-import io.dapr.workflows.client.WorkflowInstanceStatus;
+import io.dapr.workflows.client.WorkflowState;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -527,18 +513,18 @@ public class DemoWorkflowClient {
       System.out.printf("Started new workflow instance with random ID: %s%n", instanceId);
 
       System.out.println(separatorStr);
-      System.out.println("**GetInstanceMetadata:Running Workflow**");
-      WorkflowInstanceStatus workflowMetadata = client.getInstanceState(instanceId, true);
+      System.out.println("**GetWorkflowMetadata:Running Workflow**");
+      WorkflowState workflowMetadata = client.getWorkflowState(instanceId, true);
       System.out.printf("Result: %s%n", workflowMetadata);
 
       System.out.println(separatorStr);
-      System.out.println("**WaitForInstanceStart**");
+      System.out.println("**WaitForWorkflowStart**");
       try {
-        WorkflowInstanceStatus waitForInstanceStartResult =
-            client.waitForInstanceStart(instanceId, Duration.ofSeconds(60), true);
-        System.out.printf("Result: %s%n", waitForInstanceStartResult);
+        WorkflowState waitForWorkflowStartResult =
+            client.waitForWorkflowStart(instanceId, Duration.ofSeconds(60), true);
+        System.out.printf("Result: %s%n", waitForWorkflowStartResult);
       } catch (TimeoutException ex) {
-        System.out.printf("waitForInstanceStart has an exception:%s%n", ex);
+        System.out.printf("waitForWorkflowStart has an exception:%s%n", ex);
       }
 
       System.out.println(separatorStr);
@@ -559,18 +545,18 @@ public class DemoWorkflowClient {
 
 
       System.out.println(separatorStr);
-      System.out.println("**WaitForInstanceCompletion**");
+      System.out.println("**waitForWorkflowCompletion**");
       try {
-        WorkflowInstanceStatus waitForInstanceCompletionResult =
-            client.waitForInstanceCompletion(instanceId, Duration.ofSeconds(60), true);
-        System.out.printf("Result: %s%n", waitForInstanceCompletionResult);
+        WorkflowState waitForWorkflowCompletionResult =
+            client.waitForWorkflowCompletion(instanceId, Duration.ofSeconds(60), true);
+        System.out.printf("Result: %s%n", waitForWorkflowCompletionResult);
       } catch (TimeoutException ex) {
-        System.out.printf("waitForInstanceCompletion has an exception:%s%n", ex);
+        System.out.printf("waitForWorkflowCompletion has an exception:%s%n", ex);
       }
 
       System.out.println(separatorStr);
-      System.out.println("**purgeInstance**");
-      boolean purgeResult = client.purgeInstance(instanceId);
+      System.out.println("**purgeWorkflow**");
+      boolean purgeResult = client.purgeWorkflow(instanceId);
       System.out.printf("purgeResult: %s%n", purgeResult);
 
       System.out.println(separatorStr);
@@ -612,9 +598,9 @@ public class DemoWorkflowClient {
 ```
 
 - For a full guide on workflows, visit:
-   - [How-To: Author workflows]({{< ref howto-author-workflow.md >}}).
-   - [How-To: Manage workflows]({{< ref howto-manage-workflow.md >}}).
-- [Learn more about how to use workflows with the Java SDK]({{< ref java-workflow.md >}}).
+   - [How-To: Author workflows]({{% ref howto-author-workflow.md %}}).
+   - [How-To: Manage workflows]({{% ref howto-manage-workflow.md %}}).
+- [Learn more about how to use workflows with the Java SDK]({{% ref java-workflow.md %}}).
 
 ## Sidecar APIs
 
@@ -646,5 +632,125 @@ try (DaprClient client = new DaprClientBuilder().build()) {
 
 Learn more about the [Dapr Java SDK packages available to add to your Java applications](https://dapr.github.io/java-sdk/).
 
+## Security
+
+### App API Token Authentication
+
+The building blocks like pubsub, input bindings, or jobs require Dapr to make incoming calls to your application, you can secure these requests using [Dapr App API Token Authentication]({{% ref app-api-token.md %}}). This ensures that only Dapr can invoke your application's endpoints.
+
+#### Understanding the two tokens
+
+Dapr uses two different tokens for securing communication. See [Properties]({{% ref properties.md %}}) for detailed information about both tokens:
+
+- **`DAPR_API_TOKEN`** (Your app → Dapr sidecar): Automatically handled by the Java SDK when using `DaprClient`
+- **`APP_API_TOKEN`** (Dapr → Your app): Requires server-side validation in your application
+
+The examples below show how to implement server-side validation for `APP_API_TOKEN`.
+
+#### Implementing server-side token validation
+
+When using gRPC protocol, implement a server interceptor to capture the metadata.
+
+```java
+import io.grpc.Context;
+import io.grpc.Contexts;
+import io.grpc.Metadata;
+import io.grpc.ServerCall;
+import io.grpc.ServerCallHandler;
+import io.grpc.ServerInterceptor;
+
+public class SubscriberGrpcService extends AppCallbackGrpc.AppCallbackImplBase {
+  public static final Context.Key<Metadata> METADATA_KEY = Context.key("grpc-metadata");
+  
+  // gRPC interceptor to capture metadata
+  public static class MetadataInterceptor implements ServerInterceptor {
+    @Override
+    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
+        ServerCall<ReqT, RespT> call,
+        Metadata headers,
+        ServerCallHandler<ReqT, RespT> next) {
+      Context contextWithMetadata = Context.current().withValue(METADATA_KEY, headers);
+      return Contexts.interceptCall(contextWithMetadata, call, headers, next);
+    }
+  }
+  
+  // Your service methods go here...
+}
+```
+
+Register the interceptor when building your gRPC server:
+
+```java
+Server server = ServerBuilder.forPort(port)
+    .intercept(new SubscriberGrpcService.MetadataInterceptor())
+    .addService(new SubscriberGrpcService())
+    .build();
+server.start();
+```
+
+Then, in your service methods, extract the token from metadata:
+
+```java
+@Override
+public void onTopicEvent(DaprAppCallbackProtos.TopicEventRequest request,
+    StreamObserver<DaprAppCallbackProtos.TopicEventResponse> responseObserver) {
+  try {
+    // Extract metadata from context
+    Context context = Context.current();
+    Metadata metadata = METADATA_KEY.get(context);
+    
+    if (metadata != null) {
+      String apiToken = metadata.get(
+          Metadata.Key.of("dapr-api-token", Metadata.ASCII_STRING_MARSHALLER));
+      
+      // Validate token accordingly
+    }
+    
+    // Process the request
+    // ...
+    
+  } catch (Throwable e) {
+    responseObserver.onError(e);
+  }
+}
+```
+
+#### Using with HTTP endpoints
+
+For HTTP-based endpoints, extract the token from the headers:
+
+```java
+@RestController
+public class SubscriberController {
+  
+  @PostMapping(path = "/endpoint")
+  public Mono<Void> handleRequest(
+      @RequestBody(required = false) byte[] body,
+      @RequestHeader Map<String, String> headers) {
+    return Mono.fromRunnable(() -> {
+      try {
+        // Extract the token from headers
+        String apiToken = headers.get("dapr-api-token");
+        
+        // Validate token accordingly
+        
+        // Process the request
+      } catch (Exception e) {
+        throw new RuntimeException(e);
+      }
+    });
+  }
+}
+```
+
+#### Examples
+
+For working examples with pubsub, bindings, and jobs:
+- [PubSub with App API Token Authentication](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/pubsub#app-api-token-authentication-optional)
+- [Bindings with App API Token Authentication](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/bindings/http#app-api-token-authentication-optional)
+- [Jobs with App API Token Authentication](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/jobs#app-api-token-authentication-optional)
+
 ## Related links
 - [Java SDK examples](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples)
+
+For a full list of SDK properties and how to configure them, visit [Properties]({{% ref properties.md %}}).

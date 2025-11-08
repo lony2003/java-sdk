@@ -6,7 +6,7 @@ weight: 20000
 description: How to get up and running with workflows using the Dapr Java SDK
 ---
 
-Let’s create a Dapr workflow and invoke it using the console. With the [provided workflow example](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/workflows), you will:
+Let's create a Dapr workflow and invoke it using the console. With the [provided workflow example](https://github.com/dapr/java-sdk/tree/master/examples/src/main/java/io/dapr/examples/workflows), you will:
 
 - Execute the workflow instance using the [Java workflow worker](https://github.com/dapr/java-sdk/blob/master/examples/src/main/java/io/dapr/examples/workflows/DemoWorkflowWorker.java)
 - Utilize the Java workflow client and API calls to [start and terminate workflow instances](https://github.com/dapr/java-sdk/blob/master/examples/src/main/java/io/dapr/examples/workflows/DemoWorkflowClient.java)
@@ -85,10 +85,9 @@ You're up and running! Both Dapr and your app logs will appear here.
 == APP == INFO: Durable Task worker is connecting to sidecar at 127.0.0.1:50001.
 ```
 
-## Run the `DemoWorkflowClient
+## Run the `DemoWorkflowClient`
 
 The `DemoWorkflowClient` starts instances of workflows that have been registered with Dapr.
-
 
 ```java
 public class DemoWorkflowClient {
@@ -105,17 +104,17 @@ public class DemoWorkflowClient {
 
       System.out.println(separatorStr);
       System.out.println("**GetInstanceMetadata:Running Workflow**");
-      WorkflowInstanceStatus workflowMetadata = client.getInstanceState(instanceId, true);
+      WorkflowState workflowMetadata = client.getWorkflowState(instanceId, true);
       System.out.printf("Result: %s%n", workflowMetadata);
 
       System.out.println(separatorStr);
-      System.out.println("**WaitForInstanceStart**");
+      System.out.println("**WaitForWorkflowStart**");
       try {
-        WorkflowInstanceStatus waitForInstanceStartResult =
-            client.waitForInstanceStart(instanceId, Duration.ofSeconds(60), true);
-        System.out.printf("Result: %s%n", waitForInstanceStartResult);
+        WorkflowState waitForWorkflowStartResult =
+            client.waitForWorkflowStart(instanceId, Duration.ofSeconds(60), true);
+        System.out.printf("Result: %s%n", waitForWorkflowStartResult);
       } catch (TimeoutException ex) {
-        System.out.printf("waitForInstanceStart has an exception:%s%n", ex);
+        System.out.printf("waitForWorkflowStart has an exception:%s%n", ex);
       }
 
       System.out.println(separatorStr);
@@ -136,18 +135,18 @@ public class DemoWorkflowClient {
 
 
       System.out.println(separatorStr);
-      System.out.println("**WaitForInstanceCompletion**");
+      System.out.println("**waitForWorkflowCompletion**");
       try {
-        WorkflowInstanceStatus waitForInstanceCompletionResult =
-            client.waitForInstanceCompletion(instanceId, Duration.ofSeconds(60), true);
-        System.out.printf("Result: %s%n", waitForInstanceCompletionResult);
+        WorkflowState waitForWorkflowCompletionResult =
+            client.waitForWorkflowCompletion(instanceId, Duration.ofSeconds(60), true);
+        System.out.printf("Result: %s%n", waitForWorkflowCompletionResult);
       } catch (TimeoutException ex) {
-        System.out.printf("waitForInstanceCompletion has an exception:%s%n", ex);
+        System.out.printf("waitForWorkflowCompletion has an exception:%s%n", ex);
       }
 
       System.out.println(separatorStr);
-      System.out.println("**purgeInstance**");
-      boolean purgeResult = client.purgeInstance(instanceId);
+      System.out.println("**purgeWorkflow**");
+      boolean purgeResult = client.purgeWorkflow(instanceId);
       System.out.printf("purgeResult: %s%n", purgeResult);
 
       System.out.println(separatorStr);
@@ -203,7 +202,7 @@ Started new workflow instance with random ID: 0b4cc0d5-413a-4c1c-816a-a71fa24740
 **GetInstanceMetadata:Running Workflow**
 Result: [Name: 'io.dapr.examples.workflows.DemoWorkflow', ID: '0b4cc0d5-413a-4c1c-816a-a71fa24740d4', RuntimeStatus: RUNNING, CreatedAt: 2023-09-13T13:02:30.547Z, LastUpdatedAt: 2023-09-13T13:02:30.699Z, Input: '"input data"', Output: '']
 *******
-**WaitForInstanceStart**
+**WaitForWorkflowStart**
 Result: [Name: 'io.dapr.examples.workflows.DemoWorkflow', ID: '0b4cc0d5-413a-4c1c-816a-a71fa24740d4', RuntimeStatus: RUNNING, CreatedAt: 2023-09-13T13:02:30.547Z, LastUpdatedAt: 2023-09-13T13:02:30.699Z, Input: '"input data"', Output: '']
 *******
 **SendExternalMessage**
@@ -214,10 +213,10 @@ Events raised for workflow with instanceId: 0b4cc0d5-413a-4c1c-816a-a71fa24740d4
 ** Registering Event to be captured by anyOf(t1,t2,t3) **
 Event raised for workflow with instanceId: 0b4cc0d5-413a-4c1c-816a-a71fa24740d4
 *******
-**WaitForInstanceCompletion**
+**WaitForWorkflowCompletion**
 Result: [Name: 'io.dapr.examples.workflows.DemoWorkflow', ID: '0b4cc0d5-413a-4c1c-816a-a71fa24740d4', RuntimeStatus: FAILED, CreatedAt: 2023-09-13T13:02:30.547Z, LastUpdatedAt: 2023-09-13T13:02:55.054Z, Input: '"input data"', Output: '']
 *******
-**purgeInstance**
+**purgeWorkflow**
 purgeResult: true
 *******
 **raiseEvent**
@@ -245,5 +244,41 @@ Exiting DemoWorkflowClient.
    1. The worfklow client is then exited.
 
 ## Next steps
-- [Learn more about Dapr workflow]({{< ref workflow-overview.md >}})
-- [Workflow API reference]({{< ref workflow_api.md >}})
+- [Learn more about Dapr workflow]({{% ref workflow-overview.md %}})
+- [Workflow API reference]({{% ref workflow_api.md %}})
+
+## Advanced features
+
+### Task Execution Keys
+
+Task execution keys are unique identifiers generated by the durabletask-java library. They are stored in the `WorkflowActivityContext` and can be used to track and manage the execution of workflow activities. They are particularly useful for:
+
+1. **Idempotency**: Ensuring activities are not executed multiple times for the same task
+2. **State Management**: Tracking the state of activity execution
+3. **Error Handling**: Managing retries and failures in a controlled manner
+
+Here's an example of how to use task execution keys in your workflow activities:
+
+```java
+public class TaskExecutionKeyActivity implements WorkflowActivity {
+  @Override
+  public Object run(WorkflowActivityContext ctx) {
+    // Get the task execution key for this activity
+    String taskExecutionKey = ctx.getTaskExecutionKey();
+    
+    // Use the key to implement idempotency or state management
+    // For example, check if this task has already been executed
+    if (isTaskAlreadyExecuted(taskExecutionKey)) {
+      return getPreviousResult(taskExecutionKey);
+    }
+    
+    // Execute the activity logic
+    Object result = executeActivityLogic();
+    
+    // Store the result with the task execution key
+    storeResult(taskExecutionKey, result);
+    
+    return result;
+  }
+}
+```
